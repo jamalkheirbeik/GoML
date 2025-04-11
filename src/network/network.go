@@ -24,8 +24,6 @@ func Sigmoid(x float64) float64 {
 }
 
 func SigmoidDerivative(x float64) float64 {
-	// s := Sigmoid(x)
-	// return s * (1 - s)
 	return x * (1 - x)
 }
 
