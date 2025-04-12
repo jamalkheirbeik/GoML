@@ -94,14 +94,19 @@ func (nn *NerualNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matri
 	}
 }
 
-func (nn *NerualNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64) {
-	for epoch := 1; epoch <= epochs; epoch++ {
+func (nn *NerualNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64) {
+	for epoch := 1; epoch <= epochs*100; epoch++ {
 		totalCost := 0.0
 		for i := range dataset.Input().Data() {
 			predicted := nn.Forward(dataset.Input().GetRow(i))
 			expected := matrix.MatrixFrom1DArray(dataset.Output().GetRow(i))
 			totalCost += nn.Cost(*expected, predicted)
 			nn.Backprop(*expected, predicted, rate)
+		}
+
+		if totalCost < threshold {
+			fmt.Printf("Early training exit. Epoch: %d, Total Cost: %f\n", epoch, totalCost)
+			break
 		}
 
 		if epoch%1000 == 0 {
