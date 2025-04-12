@@ -99,7 +99,7 @@ func (nn *NerualNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 		totalCost := 0.0
 		for i := range dataset.Input().Data() {
 			predicted := nn.Forward(dataset.Input().GetRow(i))
-			expected := matrix.MatrixFrom1DArray(dataset.Output().GetRow(i))
+			expected := matrix.MatrixFrom1DArray(dataset.Output().GetRow(i)).Transpose()
 			totalCost += nn.Cost(*expected, predicted)
 			nn.Backprop(*expected, predicted, rate)
 		}
