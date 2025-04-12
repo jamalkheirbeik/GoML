@@ -1,18 +1,20 @@
 package network
 
 import (
+	"encoding/json"
 	"fmt"
 	"goml/src/arch"
 	"goml/src/dataset"
 	"goml/src/matrix"
 	"math"
+	"os"
 )
 
 type NerualNetwork struct {
-	arch        arch.Arch
-	weights     []matrix.Matrix
-	biases      []matrix.Matrix
-	activations []matrix.Matrix
+	Arch        arch.Arch       `json:"arch"`
+	Weights     []matrix.Matrix `json:"weights"`
+	Biases      []matrix.Matrix `json:"biases"`
+	Activations []matrix.Matrix `json:"activations"`
 }
 
 func Square(x float64) float64 {
@@ -43,37 +45,37 @@ func NewNeuralNetwork(arch arch.Arch) NerualNetwork {
 		a[i] = *matrix.NewMatrix(arch.NeuronsAt(i), 1)
 	}
 
-	return NerualNetwork{arch: arch, weights: w, biases: b, activations: a}
+	return NerualNetwork{Arch: arch, Weights: w, Biases: b, Activations: a}
 }
 
 func (nn *NerualNetwork) Print() {
-	for i := range nn.arch.Size() {
+	for i := range nn.Arch.Size() {
 		fmt.Printf("Layer %d:\n", i)
 		fmt.Println("Weights:")
-		nn.weights[i].Print()
+		nn.Weights[i].Print()
 		fmt.Println("Biases:")
-		nn.biases[i].Print()
+		nn.Biases[i].Print()
 		fmt.Println("Activations:")
-		nn.activations[i].Print()
+		nn.Activations[i].Print()
 	}
 }
 
 func (nn *NerualNetwork) Randomize(min float64, max float64) {
-	for i := range nn.arch.Size() {
-		nn.weights[i].Rand(min, max)
-		nn.biases[i].Rand(min, max)
+	for i := range nn.Arch.Size() {
+		nn.Weights[i].Rand(min, max)
+		nn.Biases[i].Rand(min, max)
 	}
 }
 
 func (nn *NerualNetwork) Forward(input []float64) matrix.Matrix {
 	inputMat := matrix.MatrixFrom1DArray(input)
-	nn.activations[0] = *inputMat.Transpose()
+	nn.Activations[0] = *inputMat.Transpose()
 
-	for i := 1; i < nn.arch.Size(); i++ {
-		nn.activations[i] = *nn.weights[i].DotMatrix(nn.activations[i-1]).AddMatrix(nn.biases[i]).Apply(Sigmoid)
+	for i := 1; i < nn.Arch.Size(); i++ {
+		nn.Activations[i] = *nn.Weights[i].DotMatrix(nn.Activations[i-1]).AddMatrix(nn.Biases[i]).Apply(Sigmoid)
 	}
 
-	return nn.activations[nn.arch.Size()-1]
+	return nn.Activations[nn.Arch.Size()-1]
 }
 
 func (nn *NerualNetwork) Cost(expected matrix.Matrix, predicted matrix.Matrix) float64 {
@@ -82,24 +84,24 @@ func (nn *NerualNetwork) Cost(expected matrix.Matrix, predicted matrix.Matrix) f
 
 func (nn *NerualNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matrix, rate float64) {
 	delta := predicted.SubMatrix(expected).ProdMatrix(*predicted.Apply(SigmoidDerivative))
-	dw := delta.DotMatrix(*nn.activations[nn.arch.Size()-2].Transpose())
-	nn.weights[nn.arch.Size()-1] = *nn.weights[nn.arch.Size()-1].SubMatrix(*dw.Prod(rate))
-	nn.biases[nn.arch.Size()-1] = *nn.biases[nn.arch.Size()-1].SubMatrix(*delta.Prod(rate))
+	dw := delta.DotMatrix(*nn.Activations[nn.Arch.Size()-2].Transpose())
+	nn.Weights[nn.Arch.Size()-1] = *nn.Weights[nn.Arch.Size()-1].SubMatrix(*dw.Prod(rate))
+	nn.Biases[nn.Arch.Size()-1] = *nn.Biases[nn.Arch.Size()-1].SubMatrix(*delta.Prod(rate))
 
-	for j := nn.arch.Size() - 2; j > 0; j-- {
-		delta = nn.weights[j+1].Transpose().DotMatrix(*delta).ProdMatrix(*nn.activations[j].Apply(SigmoidDerivative))
-		dw := delta.DotMatrix(*nn.activations[j-1].Transpose())
-		nn.weights[j] = *nn.weights[j].SubMatrix(*dw.Prod(rate))
-		nn.biases[j] = *nn.biases[j].SubMatrix(*delta.Prod(rate))
+	for j := nn.Arch.Size() - 2; j > 0; j-- {
+		delta = nn.Weights[j+1].Transpose().DotMatrix(*delta).ProdMatrix(*nn.Activations[j].Apply(SigmoidDerivative))
+		dw := delta.DotMatrix(*nn.Activations[j-1].Transpose())
+		nn.Weights[j] = *nn.Weights[j].SubMatrix(*dw.Prod(rate))
+		nn.Biases[j] = *nn.Biases[j].SubMatrix(*delta.Prod(rate))
 	}
 }
 
 func (nn *NerualNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64) {
 	for epoch := 1; epoch <= epochs*100; epoch++ {
 		totalCost := 0.0
-		for i := range dataset.Input().Data() {
-			predicted := nn.Forward(dataset.Input().GetRow(i))
-			expected := matrix.MatrixFrom1DArray(dataset.Output().GetRow(i)).Transpose()
+		for i := range dataset.Input.Data {
+			predicted := nn.Forward(dataset.Input.Data[i])
+			expected := matrix.MatrixFrom1DArray(dataset.Output.Data[i]).Transpose()
 			totalCost += nn.Cost(*expected, predicted)
 			nn.Backprop(*expected, predicted, rate)
 		}
@@ -110,13 +112,41 @@ func (nn *NerualNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 		}
 
 		if epoch%1000 == 0 {
-			fmt.Printf("Epoch = %d, Cost = %f\n", epoch, totalCost/float64(dataset.Input().Rows()))
+			fmt.Printf("Epoch = %d, Cost = %f\n", epoch, totalCost/float64(dataset.Input.Rows))
 		}
 	}
 }
 
-// TODO: train until (cost <= threshold) or we hit max epochs
-// TODO: load/save neural network from/to file
+func (nn *NerualNetwork) Save() {
+	b, err := json.Marshal(nn)
+	if err != nil {
+		panic(err)
+	}
+	file, err := os.Create("network.json")
+	if err != nil {
+		panic(err)
+	}
+	n, err := file.Write(b)
+	_ = n
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("neural network saved successfuly to network.json")
+}
+
+func Load() NerualNetwork {
+	b, err := os.ReadFile("network.json")
+	if err != nil {
+		panic(err)
+	}
+	var nn NerualNetwork
+	if err := json.Unmarshal(b, &nn); err != nil {
+		panic(err)
+	}
+	fmt.Println("neural network loaded successfuly from network.json")
+	return nn
+}
+
 // TODO: batching
 // TODO: optimize memory usage and performance
 // TODO: hardware acceleration

@@ -3,7 +3,7 @@ package arch
 import "fmt"
 
 type Arch struct {
-	model []uint64
+	Model []uint64 `json:"model"`
 }
 
 func NewArch(model ...uint64) Arch {
@@ -19,16 +19,13 @@ func NewArch(model ...uint64) Arch {
 }
 
 func (a *Arch) Print() {
-	fmt.Println(a.model)
+	fmt.Println(a.Model)
 }
 
 func (a *Arch) Size() int {
-	return len(a.model)
+	return len(a.Model)
 }
 
 func (a *Arch) NeuronsAt(i int) uint64 {
-	return a.model[i]
+	return a.Model[i]
 }
-
-// TODO: load architecture from file
-// TODO: save architecture to file

@@ -6,9 +6,9 @@ import (
 )
 
 type Matrix struct {
-	rows uint64
-	cols uint64
-	data [][]float64
+	Rows uint64      `json:"rows"`
+	Cols uint64      `json:"cols"`
+	Data [][]float64 `json:"data"`
 }
 
 func NewMatrix(rows uint64, cols uint64) *Matrix {
@@ -19,22 +19,10 @@ func NewMatrix(rows uint64, cols uint64) *Matrix {
 	return &Matrix{rows, cols, data}
 }
 
-func (m *Matrix) Rows() uint64 {
-	return m.rows
-}
-
-func (m *Matrix) Cols() uint64 {
-	return m.cols
-}
-
-func (m *Matrix) Data() [][]float64 {
-	return m.data
-}
-
 func (m *Matrix) Print() {
-	for i := range m.data {
-		for j := range m.data[i] {
-			fmt.Printf("    %f", m.data[i][j])
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			fmt.Printf("    %f", m.Data[i][j])
 		}
 		fmt.Println()
 	}
@@ -42,74 +30,74 @@ func (m *Matrix) Print() {
 }
 
 func (m *Matrix) Rand(min float64, max float64) {
-	for i := range m.data {
-		for j := range m.data[i] {
-			m.data[i][j] = min + rand.Float64()*(max-min)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			m.Data[i][j] = min + rand.Float64()*(max-min)
 		}
 	}
 }
 
 func (m *Matrix) Add(x float64) *Matrix {
-	n := NewMatrix(m.rows, m.cols)
-	for i := range m.data {
-		for j := range m.data[i] {
-			n.data[i][j] = m.data[i][j] + x
+	n := NewMatrix(m.Rows, m.Cols)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			n.Data[i][j] = m.Data[i][j] + x
 		}
 	}
 	return n
 }
 
 func (m *Matrix) Sub(x float64) *Matrix {
-	n := NewMatrix(m.rows, m.cols)
-	for i := range m.data {
-		for j := range m.data[i] {
-			n.data[i][j] = m.data[i][j] - x
+	n := NewMatrix(m.Rows, m.Cols)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			n.Data[i][j] = m.Data[i][j] - x
 		}
 	}
 	return n
 }
 
 func (m *Matrix) Prod(x float64) *Matrix {
-	n := NewMatrix(m.rows, m.cols)
-	for i := range m.data {
-		for j := range m.data[i] {
-			n.data[i][j] = m.data[i][j] * x
+	n := NewMatrix(m.Rows, m.Cols)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			n.Data[i][j] = m.Data[i][j] * x
 		}
 	}
 	return n
 }
 
 func (m *Matrix) Copy() *Matrix {
-	n := NewMatrix(m.rows, m.cols)
-	for i := range n.data {
-		for j := range n.data[i] {
-			n.data[i][j] = m.data[i][j]
+	n := NewMatrix(m.Rows, m.Cols)
+	for i := range n.Data {
+		for j := range n.Data[i] {
+			n.Data[i][j] = m.Data[i][j]
 		}
 	}
 	return n
 }
 
 func (m *Matrix) AddMatrix(n Matrix) *Matrix {
-	if m.rows != n.rows || m.cols != n.cols {
-		panic(fmt.Sprintf("cannot perform \"A[%dx%d] + B[%dx%d]\": size mismatch\n", m.rows, m.cols, n.rows, n.cols))
+	if m.Rows != n.Rows || m.Cols != n.Cols {
+		panic(fmt.Sprintf("cannot perform \"A[%dx%d] + B[%dx%d]\": size mismatch\n", m.Rows, m.Cols, n.Rows, n.Cols))
 	}
-	r := NewMatrix(m.rows, m.cols)
-	for i := range m.data {
-		for j := range m.data[i] {
-			r.data[i][j] = m.data[i][j] + n.data[i][j]
+	r := NewMatrix(m.Rows, m.Cols)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			r.Data[i][j] = m.Data[i][j] + n.Data[i][j]
 		}
 	}
 	return r
 }
 
 func (m *Matrix) SubMatrix(n Matrix) *Matrix {
-	if m.rows != n.rows || m.cols != n.cols {
-		panic(fmt.Sprintf("cannot perform \"A[%dx%d] - B[%dx%d]\": size mismatch\n", m.rows, m.cols, n.rows, n.cols))
+	if m.Rows != n.Rows || m.Cols != n.Cols {
+		panic(fmt.Sprintf("cannot perform \"A[%dx%d] - B[%dx%d]\": size mismatch\n", m.Rows, m.Cols, n.Rows, n.Cols))
 	}
-	r := NewMatrix(m.rows, m.cols)
-	for i := range m.data {
-		for j := range m.data[i] {
-			r.data[i][j] = m.data[i][j] - n.data[i][j]
+	r := NewMatrix(m.Rows, m.Cols)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			r.Data[i][j] = m.Data[i][j] - n.Data[i][j]
 		}
 	}
 	return r
@@ -117,27 +105,27 @@ func (m *Matrix) SubMatrix(n Matrix) *Matrix {
 
 // hadamard multiplication (element-wise product)
 func (m *Matrix) ProdMatrix(n Matrix) *Matrix {
-	if m.rows != n.rows || m.cols != n.cols {
-		panic(fmt.Sprintf("cannot perform \"A[%dx%d] * B[%dx%d]\": size mismatch\n", m.rows, m.cols, n.rows, n.cols))
+	if m.Rows != n.Rows || m.Cols != n.Cols {
+		panic(fmt.Sprintf("cannot perform \"A[%dx%d] * B[%dx%d]\": size mismatch\n", m.Rows, m.Cols, n.Rows, n.Cols))
 	}
-	r := NewMatrix(m.rows, m.cols)
-	for i := range m.data {
-		for j := range m.data[i] {
-			r.data[i][j] = m.data[i][j] * n.data[i][j]
+	r := NewMatrix(m.Rows, m.Cols)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			r.Data[i][j] = m.Data[i][j] * n.Data[i][j]
 		}
 	}
 	return r
 }
 
 func (m *Matrix) DotMatrix(n Matrix) *Matrix {
-	if m.cols != n.rows {
-		panic(fmt.Sprintf("invalid dot operation \"A[%dx%d] . B[%dx%d]\" COL_A != ROW_B\n", m.rows, m.cols, n.rows, n.cols))
+	if m.Cols != n.Rows {
+		panic(fmt.Sprintf("invalid dot operation \"A[%dx%d] . B[%dx%d]\" COL_A != ROW_B\n", m.Rows, m.Cols, n.Rows, n.Cols))
 	}
-	out := NewMatrix(m.rows, n.cols)
-	for i := range m.rows {
-		for j := range n.cols {
-			for k := range m.cols {
-				out.data[i][j] += m.data[i][k] * n.data[k][j]
+	out := NewMatrix(m.Rows, n.Cols)
+	for i := range m.Rows {
+		for j := range n.Cols {
+			for k := range m.Cols {
+				out.Data[i][j] += m.Data[i][k] * n.Data[k][j]
 			}
 		}
 	}
@@ -145,50 +133,50 @@ func (m *Matrix) DotMatrix(n Matrix) *Matrix {
 }
 
 func (m *Matrix) Transpose() *Matrix {
-	n := NewMatrix(m.cols, m.rows)
-	for i := range m.data {
-		for j := range m.data[i] {
-			n.data[j][i] = m.data[i][j]
+	n := NewMatrix(m.Cols, m.Rows)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			n.Data[j][i] = m.Data[i][j]
 		}
 	}
 	return n
 }
 
 func (m *Matrix) Fill(n float64) {
-	for i := range m.data {
-		for j := range m.data[i] {
-			m.data[i][j] = n
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			m.Data[i][j] = n
 		}
 	}
 }
 
 func (m *Matrix) Init(n [][]float64) {
-	if int(m.rows) != len(n) || int(m.cols) != len(n[0]) {
-		panic(fmt.Sprintf("cannot initialize matrix A[%dx%d] with array B[%dx%d]: size mismatch\n", m.rows, m.cols, len(n), len(n[0])))
+	if int(m.Rows) != len(n) || int(m.Cols) != len(n[0]) {
+		panic(fmt.Sprintf("cannot initialize matrix A[%dx%d] with array B[%dx%d]: size mismatch\n", m.Rows, m.Cols, len(n), len(n[0])))
 	}
-	for i := range m.data {
-		for j := range m.data[i] {
-			m.data[i][j] = n[i][j]
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			m.Data[i][j] = n[i][j]
 		}
 	}
 }
 
 func (m *Matrix) Trace() float64 {
-	if m.rows != m.cols {
-		panic(fmt.Sprintf("expected a square matrix [NxN] but got [%dx%d]\n", m.rows, m.cols))
+	if m.Rows != m.Cols {
+		panic(fmt.Sprintf("expected a square matrix [NxN] but got [%dx%d]\n", m.Rows, m.Cols))
 	}
 	sum := 0.0
-	for i := range m.data {
-		sum += m.data[i][i]
+	for i := range m.Data {
+		sum += m.Data[i][i]
 	}
 	return sum
 }
 
 func (m *Matrix) Apply(modifier func(float64) float64) *Matrix {
-	n := NewMatrix(m.rows, m.cols)
-	for i := range m.data {
-		for j := range m.data[i] {
-			n.data[i][j] = modifier(m.data[i][j])
+	n := NewMatrix(m.Rows, m.Cols)
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			n.Data[i][j] = modifier(m.Data[i][j])
 		}
 	}
 	return n
@@ -196,46 +184,38 @@ func (m *Matrix) Apply(modifier func(float64) float64) *Matrix {
 
 func (m *Matrix) Sum() float64 {
 	sum := 0.0
-	for i := range m.data {
-		for j := range m.data[i] {
-			sum += m.data[i][j]
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			sum += m.Data[i][j]
 		}
 	}
 	return sum
 }
 
-func (m *Matrix) Get(i int, j int) float64 {
-	return m.data[i][j]
-}
-
-func (m *Matrix) GetRow(i int) []float64 {
-	return m.data[i]
-}
-
 func (m *Matrix) Assign(n Matrix) {
-	if m.rows != n.rows || m.cols != n.cols {
-		panic(fmt.Sprintf("cannot assign values of \"B[%dx%d] to A[%dx%d]\": size mismatch\n", n.rows, n.cols, m.rows, m.cols))
+	if m.Rows != n.Rows || m.Cols != n.Cols {
+		panic(fmt.Sprintf("cannot assign values of \"B[%dx%d] to A[%dx%d]\": size mismatch\n", n.Rows, n.Cols, m.Rows, m.Cols))
 	}
-	for i := range m.data {
-		for j := range m.data[i] {
-			m.data[i][j] = n.data[i][j]
+	for i := range m.Data {
+		for j := range m.Data[i] {
+			m.Data[i][j] = n.Data[i][j]
 		}
 	}
 }
 
 func MatrixFrom1DArray(a []float64) *Matrix {
 	m := NewMatrix(1, uint64(len(a)))
-	for i := range m.data[0] {
-		m.data[0][i] = a[i]
+	for i := range m.Data[0] {
+		m.Data[0][i] = a[i]
 	}
 	return m
 }
 
 func MatrixFrom2DArray(a [][]float64) *Matrix {
 	m := NewMatrix(uint64(len(a)), uint64(len(a[0])))
-	for i := range m.data {
-		for j := range m.data[0] {
-			m.data[i][j] = a[i][j]
+	for i := range m.Data {
+		for j := range m.Data[0] {
+			m.Data[i][j] = a[i][j]
 		}
 	}
 	return m
@@ -252,6 +232,6 @@ func NewFilledMatrix(value float64, rows uint64, cols uint64) *Matrix {
 	return &Matrix{rows, cols, data}
 }
 
-// TODO: maatrix power function (example: M^2)
+// TODO: matrix power function (example: M^2)
 // TODO: matrix determinant (for square matrices)
 // TODO: matrix inversion (for square matrices)
