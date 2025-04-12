@@ -30,7 +30,7 @@ var (
 )
 
 func main() {
-	dataset := dataset.NewDataset(*matrix.MatrixFrom2DArray(input), *matrix.MatrixFrom2DArray(output))
+	dataset := dataset.NewDataset(input, output)
 	nn := network.NewNeuralNetwork(arch.NewArch(2, 2, 1))
 	nn.Randomize(-1, 1)
 
@@ -39,7 +39,7 @@ func main() {
 		predicted := nn.Forward(row)
 		expected := matrix.MatrixFrom1DArray(output[i]).Transpose()
 		fmt.Printf("Input: %v, Output: %v\n", row, output[i])
-		fmt.Printf("Predicted: %v, Cost: %f\n", predicted.Data(), nn.Cost(*expected, predicted))
+		fmt.Printf("Predicted: %v, Cost: %f\n", predicted.Data, nn.Cost(*expected, predicted))
 	}
 
 	nn.Train(dataset, EPOCHS, LEARNING_RATE, THRESHOLD)
@@ -49,6 +49,6 @@ func main() {
 		predicted := nn.Forward(row)
 		expected := matrix.MatrixFrom1DArray(output[i]).Transpose()
 		fmt.Printf("Input: %v, Output: %v\n", row, output[i])
-		fmt.Printf("Predicted: %v, Cost: %f\n", predicted.Data(), nn.Cost(*expected, predicted))
+		fmt.Printf("Predicted: %v, Cost: %f\n", predicted.Data, nn.Cost(*expected, predicted))
 	}
 }
