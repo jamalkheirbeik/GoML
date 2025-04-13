@@ -24,13 +24,19 @@ type ActivationFunction int
 const (
 	Sigmoid ActivationFunction = iota
 	Relu
+	LeakyRelu
 	Tanh
 )
 
+const (
+	RELU_PARAM = 0.01
+)
+
 var actFuncNames = map[ActivationFunction]string{
-	Sigmoid: "Sigmoid",
-	Relu:    "ReLU",
-	Tanh:    "Tanh",
+	Sigmoid:   "Sigmoid",
+	Relu:      "ReLU",
+	LeakyRelu: "Leaky ReLU",
+	Tanh:      "Tanh",
 }
 
 func (act ActivationFunction) Activate(x float64) float64 {
@@ -42,6 +48,11 @@ func (act ActivationFunction) Activate(x float64) float64 {
 			return x
 		}
 		return 0
+	case LeakyRelu:
+		if x > 0 {
+			return x
+		}
+		return x * RELU_PARAM
 	case Tanh:
 		return math.Tanh(x)
 	default:
@@ -58,6 +69,11 @@ func (act ActivationFunction) Derivative(a float64) float64 {
 			return 1
 		}
 		return 0
+	case LeakyRelu:
+		if a > 0 {
+			return 1
+		}
+		return RELU_PARAM
 	case Tanh:
 		return 1 - a*a
 	default:
