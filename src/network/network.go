@@ -11,25 +11,65 @@ import (
 )
 
 type NeuralNetwork struct {
-	Arch        arch.Arch       `json:"arch"`
-	Weights     []matrix.Matrix `json:"weights"`
-	Biases      []matrix.Matrix `json:"biases"`
-	Activations []matrix.Matrix `json:"activations"`
+	Arch          arch.Arch          `json:"arch"`
+	Weights       []matrix.Matrix    `json:"weights"`
+	Biases        []matrix.Matrix    `json:"biases"`
+	Activations   []matrix.Matrix    `json:"activations"`
+	HiddenActFunc ActivationFunction `json:"hiddenActFunc"`
+	OutputActFunc ActivationFunction `json:"outputActFunc"`
 }
 
-func Square(x float64) float64 {
-	return math.Pow(x, 2)
+type ActivationFunction int
+
+const (
+	Sigmoid ActivationFunction = iota
+	Relu
+	Tanh
+)
+
+var actFuncNames = map[ActivationFunction]string{
+	Sigmoid: "Sigmoid",
+	Relu:    "ReLU",
+	Tanh:    "Tanh",
 }
 
-func Sigmoid(x float64) float64 {
-	return 1 / (1 + math.Exp(-x))
+func (act ActivationFunction) Activate(x float64) float64 {
+	switch act {
+	case Sigmoid:
+		return 1 / (1 + math.Exp(-x))
+	case Relu:
+		if x > 0 {
+			return x
+		}
+		return 0
+	case Tanh:
+		return math.Tanh(x)
+	default:
+		panic("unknown activation function")
+	}
 }
 
-func SigmoidDerivative(x float64) float64 {
-	return x * (1 - x)
+func (act ActivationFunction) Derivative(a float64) float64 {
+	switch act {
+	case Sigmoid:
+		return a * (1 - a)
+	case Relu:
+		if a > 0 {
+			return 1
+		}
+		return 0
+	case Tanh:
+		return 1 - a*a
+	default:
+		panic("unknown activation function")
+	}
 }
 
-func NewNeuralNetwork(arch arch.Arch) NeuralNetwork {
+func (act ActivationFunction) String() string {
+	return actFuncNames[act]
+}
+
+func NewNeuralNetwork(arch arch.Arch, hiddenAct ActivationFunction, outputAct ActivationFunction) NeuralNetwork {
 	size := arch.Size()
 	w := make([]matrix.Matrix, size)
 	b := make([]matrix.Matrix, size)
@@ -45,7 +85,7 @@ func NewNeuralNetwork(arch arch.Arch) NeuralNetwork {
 		a[i] = *matrix.NewMatrix(arch.NeuronsAt(i), 1)
 	}
 
-	return NeuralNetwork{Arch: arch, Weights: w, Biases: b, Activations: a}
+	return NeuralNetwork{Arch: arch, Weights: w, Biases: b, Activations: a, HiddenActFunc: hiddenAct, OutputActFunc: outputAct}
 }
 
 func (nn *NeuralNetwork) Print() {
@@ -58,6 +98,8 @@ func (nn *NeuralNetwork) Print() {
 		fmt.Println("Activations:")
 		nn.Activations[i].Print()
 	}
+	fmt.Printf("Hidden Layer Activation Function: %s\n", nn.HiddenActFunc.String())
+	fmt.Printf("Output Layer Activation Function: %s\n", nn.OutputActFunc.String())
 }
 
 func (nn *NeuralNetwork) Randomize(min float64, max float64) {
@@ -71,25 +113,28 @@ func (nn *NeuralNetwork) Forward(input []float64) matrix.Matrix {
 	inputMat := matrix.MatrixFrom1DArray(input)
 	nn.Activations[0] = *inputMat.Transpose()
 
-	for i := 1; i < nn.Arch.Size(); i++ {
-		nn.Activations[i] = *nn.Weights[i].DotMatrix(nn.Activations[i-1]).AddMatrix(nn.Biases[i]).Apply(Sigmoid)
+	for i := 1; i < nn.Arch.Size()-1; i++ {
+		nn.Activations[i] = *nn.Weights[i].DotMatrix(nn.Activations[i-1]).AddMatrix(nn.Biases[i]).Apply(nn.HiddenActFunc.Activate)
 	}
+
+	i := nn.Arch.Size() - 1
+	nn.Activations[i] = *nn.Weights[i].DotMatrix(nn.Activations[i-1]).AddMatrix(nn.Biases[i]).Apply(nn.OutputActFunc.Activate)
 
 	return nn.Activations[nn.Arch.Size()-1]
 }
 
 func (nn *NeuralNetwork) Cost(expected matrix.Matrix, predicted matrix.Matrix) float64 {
-	return 0.5 * expected.SubMatrix(predicted).Apply(Square).Sum()
+	return 0.5 * expected.SubMatrix(predicted).Apply(func(x float64) float64 { return math.Pow(x, 2) }).Sum()
 }
 
 func (nn *NeuralNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matrix, rate float64) {
-	delta := predicted.SubMatrix(expected).ProdMatrix(*predicted.Apply(SigmoidDerivative))
+	delta := predicted.SubMatrix(expected).ProdMatrix(*predicted.Apply(nn.OutputActFunc.Derivative))
 	dw := delta.DotMatrix(*nn.Activations[nn.Arch.Size()-2].Transpose())
 	nn.Weights[nn.Arch.Size()-1] = *nn.Weights[nn.Arch.Size()-1].SubMatrix(*dw.Prod(rate))
 	nn.Biases[nn.Arch.Size()-1] = *nn.Biases[nn.Arch.Size()-1].SubMatrix(*delta.Prod(rate))
 
 	for j := nn.Arch.Size() - 2; j > 0; j-- {
-		delta = nn.Weights[j+1].Transpose().DotMatrix(*delta).ProdMatrix(*nn.Activations[j].Apply(SigmoidDerivative))
+		delta = nn.Weights[j+1].Transpose().DotMatrix(*delta).ProdMatrix(*nn.Activations[j].Apply(nn.HiddenActFunc.Derivative))
 		dw := delta.DotMatrix(*nn.Activations[j-1].Transpose())
 		nn.Weights[j] = *nn.Weights[j].SubMatrix(*dw.Prod(rate))
 		nn.Biases[j] = *nn.Biases[j].SubMatrix(*delta.Prod(rate))
@@ -97,12 +142,13 @@ func (nn *NeuralNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matri
 }
 
 func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64, maxRateReductions int, maxDecline int) {
-	prevCost := 0.0
+	prevCost := math.MaxFloat64
 	reductions, decline := 0, 0
 
 	for epoch := 1; epoch <= epochs; epoch++ {
 		dataset.Shuffle()
 		cost := 0.0
+		// TODO: accumulate gradients and batch update weights/biases
 		for i := range dataset.Input.Data {
 			predicted := nn.Forward(dataset.Input.Data[i])
 			expected := matrix.MatrixFrom1DArray(dataset.Output.Data[i]).Transpose()
@@ -171,6 +217,5 @@ func Load() (NeuralNetwork, error) {
 	return nn, nil
 }
 
-// TODO: batching
 // TODO: optimize memory usage and performance
 // TODO: hardware acceleration
