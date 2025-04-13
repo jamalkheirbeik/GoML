@@ -101,6 +101,7 @@ func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 	reductions, decline := 0, 0
 
 	for epoch := 1; epoch <= epochs; epoch++ {
+		dataset.Shuffle()
 		cost := 0.0
 		for i := range dataset.Input.Data {
 			predicted := nn.Forward(dataset.Input.Data[i])

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goml/src/matrix"
+	"math/rand"
 	"os"
 )
 
@@ -56,5 +57,11 @@ func Load() (Dataset, error) {
 	return ds, nil
 }
 
+func (ds *Dataset) Shuffle() {
+	rand.Shuffle(len(ds.Input.Data), func(i, j int) {
+		ds.Input.Data[i], ds.Input.Data[j] = ds.Input.Data[j], ds.Input.Data[i]
+		ds.Output.Data[i], ds.Output.Data[j] = ds.Output.Data[j], ds.Output.Data[i]
+	})
+}
+
 // TODO: normalization functions
-// TODO: shuffle dataset
