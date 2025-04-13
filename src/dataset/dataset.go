@@ -43,17 +43,17 @@ func (ds *Dataset) Save() {
 	fmt.Println("dataset saved successfuly to dataset.json")
 }
 
-func Load() Dataset {
+func Load() (Dataset, error) {
 	b, err := os.ReadFile("dataset.json")
 	if err != nil {
-		panic(err)
+		return Dataset{}, err
 	}
 	var ds Dataset
 	if err := json.Unmarshal(b, &ds); err != nil {
-		panic(err)
+		return Dataset{}, err
 	}
 	fmt.Println("dataset loaded successfuly from dataset.json")
-	return ds
+	return ds, nil
 }
 
 // TODO: normalization functions

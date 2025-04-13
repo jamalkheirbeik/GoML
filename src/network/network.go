@@ -97,7 +97,7 @@ func (nn *NerualNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matri
 }
 
 func (nn *NerualNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64) {
-	for epoch := 1; epoch <= epochs*100; epoch++ {
+	for epoch := 1; epoch <= epochs; epoch++ {
 		totalCost := 0.0
 		for i := range dataset.Input.Data {
 			predicted := nn.Forward(dataset.Input.Data[i])
@@ -134,17 +134,17 @@ func (nn *NerualNetwork) Save() {
 	fmt.Println("neural network saved successfuly to network.json")
 }
 
-func Load() NerualNetwork {
+func Load() (NerualNetwork, error) {
 	b, err := os.ReadFile("network.json")
 	if err != nil {
-		panic(err)
+		return NerualNetwork{}, err
 	}
 	var nn NerualNetwork
 	if err := json.Unmarshal(b, &nn); err != nil {
-		panic(err)
+		return NerualNetwork{}, err
 	}
 	fmt.Println("neural network loaded successfuly from network.json")
-	return nn
+	return nn, nil
 }
 
 // TODO: batching
