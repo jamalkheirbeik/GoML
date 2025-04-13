@@ -9,9 +9,11 @@ import (
 )
 
 const (
-	LEARNING_RATE = 0.1
-	EPOCHS        = 50_000
-	THRESHOLD     = 0.01
+	LEARNING_RATE       = 0.1
+	EPOCHS              = 50_000
+	THRESHOLD           = 0.001
+	MAX_RATE_REDUCTIONS = 20
+	MAX_DECLINE         = 30
 )
 
 var (
@@ -42,7 +44,7 @@ func main() {
 		fmt.Printf("Predicted: %v, Cost: %f\n", predicted.Data, nn.Cost(*expected, predicted))
 	}
 
-	nn.Train(dataset, EPOCHS, LEARNING_RATE, THRESHOLD)
+	nn.Train(dataset, EPOCHS, LEARNING_RATE, THRESHOLD, MAX_RATE_REDUCTIONS, MAX_DECLINE)
 
 	fmt.Printf("\nAfter Training:\n\n")
 	for i, row := range input {

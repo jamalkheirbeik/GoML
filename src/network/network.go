@@ -96,7 +96,10 @@ func (nn *NeuralNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matri
 	}
 }
 
-func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64) {
+func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64, maxRateReductions int, maxDecline int) {
+	prevCost := 0.0
+	reductions, decline := 0, 0
+
 	for epoch := 1; epoch <= epochs; epoch++ {
 		cost := 0.0
 		for i := range dataset.Input.Data {
@@ -108,8 +111,27 @@ func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 
 		cost /= float64(dataset.Input.Rows)
 		if cost < threshold {
-			fmt.Printf("Early training exit. Epoch: %d, Cost: %f\n", epoch, cost)
+			fmt.Printf("Target reached at Epoch: %d, Cost: %f\n", epoch, cost)
 			break
+		}
+
+		if cost > prevCost {
+			decline++
+		} else {
+			decline = 0
+		}
+		prevCost = cost
+
+		if decline > maxDecline {
+			if reductions < maxRateReductions {
+				rate *= 0.5
+				reductions++
+				decline = 0
+				fmt.Printf("Reduced learning rate to %f\n", rate)
+			} else {
+				fmt.Printf("No improvements after %d reductions to learning rate. Epoch: %d, Cost: %f\n", maxRateReductions, epoch, cost)
+				break
+			}
 		}
 
 		if epoch%1000 == 0 {
