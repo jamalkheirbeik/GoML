@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"goml/src/act"
 	"goml/src/arch"
 	"goml/src/dataset"
 	"goml/src/matrix"
@@ -9,11 +10,9 @@ import (
 )
 
 const (
-	LEARNING_RATE       = 0.1
-	EPOCHS              = 50_000
-	THRESHOLD           = 0.001
-	MAX_RATE_REDUCTIONS = 20
-	MAX_DECLINE         = 30
+	LEARNING_RATE = 0.1
+	EPOCHS        = 50_000
+	THRESHOLD     = 0.001
 )
 
 var (
@@ -33,7 +32,7 @@ var (
 
 func main() {
 	dataset := dataset.NewDataset(input, output)
-	nn := network.NewNeuralNetwork(arch.NewArch(2, 4, 4, 1), network.Relu, network.Sigmoid)
+	nn := network.NewNeuralNetwork(arch.NewArch(2, 4, 4, 1), act.Relu, act.Sigmoid)
 	nn.Randomize(-1, 1)
 
 	fmt.Printf("\nBefore Training:\n\n")
@@ -44,7 +43,7 @@ func main() {
 		fmt.Printf("Predicted: %v, Cost: %f\n", predicted.Data, nn.Cost(*expected, predicted))
 	}
 
-	nn.Train(dataset, EPOCHS, LEARNING_RATE, THRESHOLD, MAX_RATE_REDUCTIONS, MAX_DECLINE)
+	nn.Train(dataset, EPOCHS, LEARNING_RATE, THRESHOLD)
 
 	fmt.Printf("\nAfter Training:\n\n")
 	for i, row := range input {

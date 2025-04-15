@@ -231,7 +231,3 @@ func NewFilledMatrix(value float64, rows uint64, cols uint64) *Matrix {
 	}
 	return &Matrix{rows, cols, data}
 }
-
-// TODO: matrix power function (example: M^2)
-// TODO: matrix determinant (for square matrices)
-// TODO: matrix inversion (for square matrices)
