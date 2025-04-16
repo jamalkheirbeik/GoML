@@ -13,6 +13,7 @@ const (
 	LEARNING_RATE = 0.1
 	EPOCHS        = 50_000
 	THRESHOLD     = 0.001
+	BATCH_SIZE    = 4
 )
 
 var (
@@ -43,7 +44,7 @@ func main() {
 		fmt.Printf("Predicted: %v, Cost: %f\n", predicted.Data, nn.Cost(*expected, predicted))
 	}
 
-	nn.Train(dataset, EPOCHS, LEARNING_RATE, THRESHOLD)
+	nn.Train(dataset, EPOCHS, LEARNING_RATE, THRESHOLD, BATCH_SIZE)
 
 	fmt.Printf("\nAfter Training:\n\n")
 	for i, row := range input {

@@ -16,10 +16,28 @@ type Gradient struct {
 	Dws []matrix.Matrix
 }
 
-func NewGradient(size int) Gradient {
-	return Gradient{
+func NewGradient(nn NeuralNetwork) Gradient {
+	size := nn.Arch.Size()
+	g := Gradient{
 		Dbs: make([]matrix.Matrix, size),
 		Dws: make([]matrix.Matrix, size),
+	}
+
+	g.Dbs[size-1] = *matrix.NewMatrix(nn.Activations[size-1].Rows, nn.Activations[size-1].Cols)
+	g.Dws[size-1] = *matrix.NewMatrix(g.Dbs[size-1].Rows, nn.Activations[size-2].Rows)
+
+	for j := nn.Arch.Size() - 2; j > 0; j-- {
+		g.Dbs[j] = *matrix.NewMatrix(nn.Weights[j+1].Cols, g.Dbs[j+1].Cols)
+		g.Dws[j] = *matrix.NewMatrix(g.Dbs[j].Rows, nn.Activations[j-1].Rows)
+	}
+
+	return g
+}
+
+func (g *Gradient) AddGradient(b Gradient) {
+	for i := range g.Dbs {
+		g.Dbs[i] = *g.Dbs[i].AddMatrix(b.Dbs[i])
+		g.Dws[i] = *g.Dws[i].AddMatrix(b.Dws[i])
 	}
 }
 
@@ -91,26 +109,36 @@ func (nn *NeuralNetwork) Cost(expected matrix.Matrix, predicted matrix.Matrix) f
 }
 
 func (nn *NeuralNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matrix) Gradient {
-	size := nn.Arch.Size() - 1
-	g := NewGradient(size)
-	g.Dbs[size-1] = *predicted.SubMatrix(expected).ProdMatrix(*predicted.Apply(nn.OutputActFunc.Derivative))
-	g.Dws[size-1] = *g.Dbs[size-1].DotMatrix(*nn.Activations[nn.Arch.Size()-2].Transpose())
-	for i := size - 1; i > 0; i-- {
-		g.Dbs[i-1] = *nn.Weights[i+1].Transpose().DotMatrix(g.Dbs[i]).ProdMatrix(*nn.Activations[i].Apply(nn.HiddenActFunc.Derivative))
-		g.Dws[i-1] = *g.Dbs[i-1].DotMatrix(*nn.Activations[i-1].Transpose())
+	g := NewGradient(*nn)
+	g.Dbs[nn.Arch.Size()-1] = *predicted.SubMatrix(expected).ProdMatrix(*predicted.Apply(nn.OutputActFunc.Derivative))
+	g.Dws[nn.Arch.Size()-1] = *g.Dbs[nn.Arch.Size()-1].DotMatrix(*nn.Activations[nn.Arch.Size()-2].Transpose())
+
+	for j := nn.Arch.Size() - 2; j > 0; j-- {
+		g.Dbs[j] = *nn.Weights[j+1].Transpose().DotMatrix(g.Dbs[j+1]).ProdMatrix(*nn.Activations[j].Apply(nn.HiddenActFunc.Derivative))
+		g.Dws[j] = *g.Dbs[j].DotMatrix(*nn.Activations[j-1].Transpose())
 	}
+
 	return g
 }
 
-func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64) {
+func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64, batchSize int) {
 	for epoch := 1; epoch <= epochs; epoch++ {
 		cost := 0.0
-		for i := range dataset.Input.Data {
-			predicted := nn.Forward(dataset.Input.Data[i])
-			expected := matrix.MatrixFrom1DArray(dataset.Output.Data[i]).Transpose()
-			cost += nn.Cost(*expected, predicted)
-			gradient := nn.Backprop(*expected, predicted)
-			nn.Learn(gradient, rate)
+		batches := int(math.Ceil(float64(dataset.Input.Rows) / float64(batchSize)))
+
+		for batch := range batches {
+			start := batch * batchSize
+			end := min(start+batchSize, int(dataset.Input.Rows))
+			grads := NewGradient(*nn)
+
+			for i := start; i < end; i++ {
+				predicted := nn.Forward(dataset.Input.Data[i])
+				expected := matrix.MatrixFrom1DArray(dataset.Output.Data[i]).Transpose()
+				cost += nn.Cost(*expected, predicted)
+				grads.AddGradient(nn.Backprop(*expected, predicted))
+			}
+
+			nn.Learn(grads, rate)
 		}
 
 		cost /= float64(dataset.Input.Rows)
@@ -128,8 +156,8 @@ func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 
 func (nn *NeuralNetwork) Learn(g Gradient, rate float64) {
 	for i := nn.Arch.Size() - 1; i > 0; i-- {
-		nn.Weights[i] = *nn.Weights[i].SubMatrix(*g.Dws[i-1].Prod(rate))
-		nn.Biases[i] = *nn.Biases[i].SubMatrix(*g.Dbs[i-1].Prod(rate))
+		nn.Weights[i] = *nn.Weights[i].SubMatrix(*g.Dws[i].Prod(rate))
+		nn.Biases[i] = *nn.Biases[i].SubMatrix(*g.Dbs[i].Prod(rate))
 	}
 }
 
