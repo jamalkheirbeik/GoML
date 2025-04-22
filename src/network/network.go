@@ -9,6 +9,7 @@ import (
 	"goml/src/matrix"
 	"math"
 	"os"
+	"time"
 )
 
 type Gradient struct {
@@ -123,6 +124,8 @@ func (nn *NeuralNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matri
 
 func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float64, threshold float64, batchSize int) {
 	for epoch := 1; epoch <= epochs; epoch++ {
+		timeStart := time.Now()
+		dataset.Shuffle()
 		cost := 0.0
 		batches := int(math.Ceil(float64(dataset.Input.Rows) / float64(batchSize)))
 
@@ -146,11 +149,7 @@ func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 			fmt.Printf("Target reached at Epoch: %d, Cost: %f\n", epoch, cost)
 			break
 		}
-
-		if epoch%1000 == 0 {
-			fmt.Printf("Epoch = %d, Cost = %f\n", epoch, cost)
-		}
-		dataset.Shuffle()
+		fmt.Printf("Epoch = %d, Rate = %f, Cost = %f, Duration = %f\n", epoch, rate, cost, time.Since(timeStart).Seconds())
 	}
 }
 
