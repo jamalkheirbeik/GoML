@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-type Gradient struct {
+type gradient struct {
 	Dbs []matrix.Matrix
 	Dws []matrix.Matrix
 }
 
-func NewGradient(nn NeuralNetwork) Gradient {
+func NewGradient(nn NeuralNetwork) gradient {
 	size := nn.Arch.Size()
-	g := Gradient{
+	g := gradient{
 		Dbs: make([]matrix.Matrix, size),
 		Dws: make([]matrix.Matrix, size),
 	}
@@ -35,7 +35,7 @@ func NewGradient(nn NeuralNetwork) Gradient {
 	return g
 }
 
-func (g *Gradient) AddGradient(b Gradient) {
+func (g *gradient) addGradient(b gradient) {
 	for i := range g.Dbs {
 		g.Dbs[i] = *g.Dbs[i].AddMatrix(b.Dbs[i])
 		g.Dws[i] = *g.Dws[i].AddMatrix(b.Dws[i])
@@ -134,7 +134,7 @@ func (nn *NeuralNetwork) Cost(expected matrix.Matrix, predicted matrix.Matrix) f
 	return 0.5 * expected.SubMatrix(predicted).Apply(func(x float64) float64 { return math.Pow(x, 2) }).Sum()
 }
 
-func (nn *NeuralNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matrix) Gradient {
+func (nn *NeuralNetwork) Backprop(expected matrix.Matrix, predicted matrix.Matrix) gradient {
 	g := NewGradient(*nn)
 	g.Dbs[nn.Arch.Size()-1] = *predicted.SubMatrix(expected).ProdMatrix(*predicted.Apply(nn.OutputActFunc.Derivative))
 	g.Dws[nn.Arch.Size()-1] = *g.Dbs[nn.Arch.Size()-1].DotMatrix(*nn.Activations[nn.Arch.Size()-2].Transpose())
@@ -163,10 +163,10 @@ func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 				predicted := nn.Forward(dataset.Input.Data[i])
 				expected := matrix.MatrixFrom1DArray(dataset.Output.Data[i]).Transpose()
 				cost += nn.Cost(*expected, predicted)
-				grads.AddGradient(nn.Backprop(*expected, predicted))
+				grads.addGradient(nn.Backprop(*expected, predicted))
 			}
 
-			nn.Learn(grads, rate)
+			nn.learn(grads, rate)
 		}
 
 		cost /= float64(dataset.Input.Rows)
@@ -178,7 +178,7 @@ func (nn *NeuralNetwork) Train(dataset *dataset.Dataset, epochs int, rate float6
 	}
 }
 
-func (nn *NeuralNetwork) Learn(g Gradient, rate float64) {
+func (nn *NeuralNetwork) learn(g gradient, rate float64) {
 	for i := nn.Arch.Size() - 1; i > 0; i-- {
 		nn.Weights[i] = *nn.Weights[i].SubMatrix(*g.Dws[i].Prod(rate))
 		nn.Biases[i] = *nn.Biases[i].SubMatrix(*g.Dbs[i].Prod(rate))
