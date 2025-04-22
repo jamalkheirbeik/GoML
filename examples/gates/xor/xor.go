@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	LEARNING_RATE = 0.1
+	LEARNING_RATE = 0.01
 	EPOCHS        = 50_000
 	THRESHOLD     = 0.001
 	BATCH_SIZE    = 4
@@ -33,8 +33,7 @@ var (
 
 func main() {
 	dataset := dataset.NewDataset(input, output)
-	nn := network.NewNeuralNetwork(arch.NewArch(2, 4, 4, 1), act.Relu, act.Sigmoid)
-	nn.Randomize(-1, 1)
+	nn := network.NewNeuralNetwork(arch.NewArch(2, 4, 1), act.LeakyRelu, act.Sigmoid)
 
 	fmt.Printf("\nBefore Training:\n\n")
 	for i, row := range input {

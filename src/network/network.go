@@ -61,13 +61,45 @@ func NewNeuralNetwork(arch arch.Arch, hiddenAct act.ActivationFunction, outputAc
 	b[0] = *matrix.NewMatrix(0, 0)
 	a[0] = *matrix.NewMatrix(arch.NeuronsAt(0), 1)
 
-	for i := 1; i < size; i++ {
+	fanIn := arch.NeuronsAt(0)
+	fanOut := arch.NeuronsAt(size - 1)
+	for i := 1; i < size-1; i++ {
 		w[i] = *matrix.NewMatrix(arch.NeuronsAt(i), arch.NeuronsAt(i-1))
 		b[i] = *matrix.NewMatrix(arch.NeuronsAt(i), 1) // bias for each neuron
 		a[i] = *matrix.NewMatrix(arch.NeuronsAt(i), 1)
+		initWeights(w[i], hiddenAct, fanIn, fanOut)
 	}
 
+	i := size - 1
+	w[i] = *matrix.NewMatrix(arch.NeuronsAt(i), arch.NeuronsAt(i-1))
+	b[i] = *matrix.NewMatrix(arch.NeuronsAt(i), 1) // bias for each neuron
+	a[i] = *matrix.NewMatrix(arch.NeuronsAt(i), 1)
+	initWeights(w[i], outputAct, fanIn, fanOut)
+
 	return NeuralNetwork{Arch: arch, Weights: w, Biases: b, Activations: a, HiddenActFunc: hiddenAct, OutputActFunc: outputAct}
+}
+
+func initWeights(ws matrix.Matrix, activation act.ActivationFunction, fanIn uint64, fanOut uint64) {
+	switch activation {
+	case act.Sigmoid:
+		// Xavier uniform
+		limit := math.Sqrt(6.0 / float64(fanIn+fanOut))
+		ws.Rand(-limit, limit)
+	case act.Relu:
+		// He uniform
+		limit := math.Sqrt(6.0 / float64(fanIn))
+		ws.Rand(-limit, limit)
+	case act.LeakyRelu:
+		// He uniform
+		limit := math.Sqrt(6.0 / float64(fanIn))
+		ws.Rand(-limit, limit)
+	case act.Tanh:
+		// Xavier uniform
+		limit := math.Sqrt(6.0 / float64(fanIn+fanOut))
+		ws.Rand(-limit, limit)
+	default:
+		ws.Rand(-1, 1)
+	}
 }
 
 func (nn *NeuralNetwork) Print() {
@@ -82,13 +114,6 @@ func (nn *NeuralNetwork) Print() {
 	}
 	fmt.Printf("Hidden Layer Activation Function: %s\n", nn.HiddenActFunc.String())
 	fmt.Printf("Output Layer Activation Function: %s\n", nn.OutputActFunc.String())
-}
-
-func (nn *NeuralNetwork) Randomize(min float64, max float64) {
-	for i := range nn.Arch.Size() {
-		nn.Weights[i].Rand(min, max)
-		nn.Biases[i].Rand(min, max)
-	}
 }
 
 func (nn *NeuralNetwork) Forward(input []float64) matrix.Matrix {

@@ -33,8 +33,7 @@ var (
 
 func main() {
 	dataset := dataset.NewDataset(input, output)
-	nn := network.NewNeuralNetwork(arch.NewArch(2, 2, 1), act.Relu, act.Sigmoid)
-	nn.Randomize(-1, 1)
+	nn := network.NewNeuralNetwork(arch.NewArch(2, 1), act.LeakyRelu, act.Sigmoid)
 
 	fmt.Printf("\nBefore Training:\n\n")
 	for i, row := range input {
